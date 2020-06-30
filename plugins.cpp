@@ -1,18 +1,12 @@
-
-// This is a skeleton file for use in creating your own plugin
-// libraries.  Replace MyPlugin and myPlugin throughout with the name
-// of your first plugin class, and fill in the gaps as appropriate.
-
-
 #include <vamp/vamp.h>
 #include <vamp-sdk/PluginAdapter.h>
 
-#include "MyPlugin.h"
+#include "QlibPitch.h"
 
 
 // Declare one static adapter here for each plugin class in this library.
 
-static Vamp::PluginAdapter<MyPlugin> myPluginAdapter;
+static Vamp::PluginAdapter<QlibPitch> qlibPitchAdapter;
 
 
 // This is the entry-point for the library, and the only function that
@@ -29,7 +23,7 @@ vampGetPluginDescriptor(unsigned int version, unsigned int index)
     // library.)
 
     switch (index) {
-    case  0: return myPluginAdapter.getDescriptor();
+    case  0: return qlibPitchAdapter.getDescriptor();
     default: return 0;
     }
 }

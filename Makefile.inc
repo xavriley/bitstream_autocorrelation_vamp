@@ -25,15 +25,15 @@
 
 # Edit this to the base name of your plugin library
 #
-PLUGIN_LIBRARY_NAME := myplugins
+PLUGIN_LIBRARY_NAME := qlib_pitch
 
 # Edit this to list the .cpp or .c files in your plugin project
 #
-PLUGIN_SOURCES := MyPlugin.cpp plugins.cpp
+PLUGIN_SOURCES := QlibPitch.cpp plugins.cpp
 
 # Edit this to list the .h files in your plugin project
 #
-PLUGIN_HEADERS := MyPlugin.h
+PLUGIN_HEADERS := QlibPitch.h
 
 CXXFLAGS	:= -I./Q/q_lib/include -I./Q/infra/include -std=c++17
 

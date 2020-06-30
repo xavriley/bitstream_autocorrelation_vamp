@@ -1,12 +1,5 @@
-
-// This is a skeleton file for use in creating your own plugin
-// libraries.  Replace MyPlugin and myPlugin throughout with the name
-// of your first plugin class, and fill in the gaps as appropriate.
-
-
-// Remember to use a different guard symbol in each header!
-#ifndef MY_PLUGIN_H
-#define MY_PLUGIN_H
+#ifndef QLIB_PITCH_H
+#define QLIB_PITCH_H
 
 #include <vamp-sdk/Plugin.h>
 #include <q/support/literals.hpp>
@@ -15,11 +8,11 @@
 using std::string;
 
 
-class MyPlugin : public Vamp::Plugin
+class QlibPitch : public Vamp::Plugin
 {
 public:
-    MyPlugin(float inputSampleRate);
-    virtual ~MyPlugin();
+    QlibPitch(float inputSampleRate);
+    virtual ~QlibPitch();
 
     string getIdentifier() const;
     string getName() const;
@@ -55,6 +48,8 @@ public:
 protected:
     // plugin-specific data and methods go here
     size_t m_blockSize;
+    float m_highestPitch;
+    float m_lowestPitch;
 };
 
 
