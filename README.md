@@ -19,7 +19,9 @@ git clone --recurse-submodules git@github.com:xavriley/bistream_autocorrelation_
 * cd into the repo and run
 
 ```bash
-
+$ cd Q && mkdir build && cd build && cmake -B ./build -S ./ -G"Unix Makefiles" && cd build && make && cd ../../
+# Assumes you are on OS X 
+# Use the appropriate Makefile for your operating system
 $ make -f Makefile.osx 
 ```
 
@@ -35,10 +37,10 @@ Using block size = 1024, step size = 1024
 Plugin accepts 1 -> 1 channel(s)
 Sound file has 1 (will mix/augment if necessary)
 Output is: "output"
- 0.000000000: 439.963
- 0.023219955:
- 0.046439909:
- 0.069659864:
+ 0.000000000:
+ 0.023219955: 440.063 439.953
+ 0.046439909: 439.953 439.939
+ 0.069659864: 439.719 439.304
  0.092879819:
  0.116099773:
  0.139319728:
@@ -46,7 +48,9 @@ Output is: "output"
 
 ## Parameters
 
-*Warning* these are a work in progress - changing them affects the output of the tracker. This is being looked at.
+Changing these affects the output slightly due to how the algorithm works.
+
+One constraint is that they need to be within 4 octaves of each other.
 
 * `lowestPitch`: Lowest pitch to be tracked. Defaults to 100Hz
 * `highestPitch`: Highest pitch to be tracked. Defaults to 800Hz
@@ -58,5 +62,8 @@ Output is: "output"
 - [x] rename plugin
 - [x] fixup metadata
 - [x] implement params (lowest freq, highest freq)
-- [ ] add some kind of smoothing
-- [ ] look into octave jumps
+- [x] add some kind of smoothing
+- [x] look into octave jumps
+- [ ] Make hysterisis a parameter
+- [ ] Make pre-processing code optional via a param
+
