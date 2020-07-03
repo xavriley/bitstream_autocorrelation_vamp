@@ -6,12 +6,11 @@ using std::fixed;
 
 QlibPitch::QlibPitch(float inputSampleRate) :
     Plugin(inputSampleRate),
-        m_lowestPitch(100.0),
+        // m_pd is initialized first so we provide default lowestPitch and highestPitch args here as well
+        m_pd(std::make_shared<cycfi::q::pitch_detector>(100_Hz, 800_Hz, inputSampleRate, -45_dB)),
         m_highestPitch(800.0),
+        m_lowestPitch(100.0),
         m_blockSize(0)
-    // Also be sure to set your plugin parameters (presumably stored
-    // in member variables) to their default values here -- the host
-    // will not do that for you
 {
 }
 
@@ -201,6 +200,8 @@ QlibPitch::initialise(size_t channels, size_t stepSize, size_t blockSize)
     // Real initialisation work goes here!
     m_blockSize = blockSize;
 
+    m_pd = std::make_shared<cycfi::q::pitch_detector>(m_lowestPitch, m_highestPitch, m_inputSampleRate, -45_dB);
+
     return true;
 }
 
@@ -216,22 +217,53 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
     Feature f;
     f.hasTimestamp = true;
 
-    q::pitch_detector    pd(m_lowestPitch, m_highestPitch, m_inputSampleRate, -45_dB);
-    //q::pitch_detector    pd{400_Hz, 450_Hz, (std::uint32_t)m_inputSampleRate, -45_dB};
+    uint32_t sps = static_cast<uint32_t>(m_inputSampleRate);
+
+    constexpr float            slope = 1.0f/4;
+    constexpr float            makeup_gain = 4;
+    q::compressor              comp{ -18_dB, slope };
+    q::clip                    clip;
+
+    float                      onset_threshold = float(-28_dB);
+    float                      release_threshold = float(-60_dB);
+    float                      threshold = onset_threshold;
+    q::peak_envelope_follower  env{ 30_ms, sps };
+    q::one_pole_lowpass        lp{ m_highestPitch, sps };
+    q::one_pole_lowpass        lp2{ m_lowestPitch, sps };
 
     float frequency = 0.0f;
 
     size_t i = 0; // note: same type as m_blockSize
 
     while (i < m_blockSize) {
-        float sample = inputBuffers[0][i];
+        float s = inputBuffers[0][i];
+
+        // Bandpass filter
+        s = lp(s);
+        s -= lp2(s);
+
+        // Envelope
+        auto e = env(std::abs(s));
+
+        if (e > threshold)
+        {
+            // Compressor + makeup-gain + hard clip
+            auto gain = float(comp(e)) * makeup_gain;
+            s = clip(s * gain);
+            threshold = release_threshold;
+        }
+        else
+        {
+            s = 0.0f;
+            threshold = onset_threshold;
+        }
 
         // Period Detection
-        bool is_ready = pd(sample);
+        bool is_ready = m_pd->operator()(s);
 
         if (is_ready)
         {
-            frequency = pd.get_frequency();
+            frequency = m_pd->get_frequency();
 
             if (frequency != 0.0f)
             {
