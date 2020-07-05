@@ -56,6 +56,7 @@ protected:
     size_t m_blockSize;
     float m_highestPitch;
     float m_lowestPitch;
+    float m_threshold;
 };
 
 

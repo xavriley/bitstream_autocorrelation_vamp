@@ -64,6 +64,7 @@ One constraint is that they need to be within 4 octaves of each other.
 - [x] implement params (lowest freq, highest freq)
 - [x] add some kind of smoothing
 - [x] look into octave jumps
-- [ ] Make hysterisis a parameter
+- [x] Make hysterisis a parameter
 - [ ] Make pre-processing code optional via a param
+- [ ] Output frequencies with timestamps rather than having them grouped by sample windows
 

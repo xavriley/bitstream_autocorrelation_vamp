@@ -6,11 +6,12 @@ using std::fixed;
 
 QlibPitch::QlibPitch(float inputSampleRate) :
     Plugin(inputSampleRate),
-        // m_pd is initialized first so we provide default lowestPitch and highestPitch args here as well
+        // m_pd is initialized first so we provide default args here as well
         m_pd(std::make_shared<cycfi::q::pitch_detector>(100_Hz, 800_Hz, inputSampleRate, -45_dB)),
+        m_blockSize(0),
         m_highestPitch(800.0),
         m_lowestPitch(100.0),
-        m_blockSize(0)
+        m_threshold(-45.0)
 {
 }
 
@@ -120,6 +121,17 @@ QlibPitch::getParameterDescriptors() const
     highestPitch.isQuantized = false;
     list.push_back(highestPitch);
 
+    ParameterDescriptor threshold;
+    threshold.identifier = "threshold";
+    threshold.name = "Hysterisis Threshold";
+    threshold.description = "Pitches will not be given for signals below this volume level.";
+    threshold.unit = "dB";
+    threshold.minValue = -100.0;
+    threshold.maxValue = 0.0;
+    threshold.defaultValue = -45.0;
+    threshold.isQuantized = false;
+    list.push_back(threshold);
+
     return list;
 }
 
@@ -130,6 +142,8 @@ QlibPitch::getParameter(string identifier) const
         return static_cast<float>(m_lowestPitch);
     } else if (identifier == "highestPitch") {
         return static_cast<float>(m_highestPitch);
+    } else if (identifier == "threshold") {
+        return static_cast<float>(m_threshold);
     } else {
         return 0;
     }
@@ -142,6 +156,8 @@ QlibPitch::setParameter(string identifier, float value)
         m_lowestPitch = value;
     } else if (identifier == "highestPitch") {
         m_highestPitch = value;
+    } else if (identifier == "threshold") {
+        m_threshold = value;
     }
 }
 
@@ -200,7 +216,7 @@ QlibPitch::initialise(size_t channels, size_t stepSize, size_t blockSize)
     // Real initialisation work goes here!
     m_blockSize = blockSize;
 
-    m_pd = std::make_shared<cycfi::q::pitch_detector>(m_lowestPitch, m_highestPitch, m_inputSampleRate, -45_dB);
+    m_pd = std::make_shared<cycfi::q::pitch_detector>(m_lowestPitch, m_highestPitch, m_inputSampleRate, q::decibel(q::detail::db2a(m_threshold)));
 
     return true;
 }
