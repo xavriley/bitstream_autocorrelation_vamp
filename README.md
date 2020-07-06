@@ -37,13 +37,16 @@ Using block size = 1024, step size = 1024
 Plugin accepts 1 -> 1 channel(s)
 Sound file has 1 (will mix/augment if necessary)
 Output is: "output"
- 0.000000000:
- 0.023219955: 440.063 439.953
- 0.046439909: 439.953 439.939
- 0.069659864: 439.719 439.304
- 0.092879819:
- 0.116099773:
- 0.139319728:
+ 0.000000000: 0
+ 0.030589570: 440.063
+ 0.040612245: 439.953
+ 0.051043084: 439.953
+ 0.060929705: 439.939
+ 0.071088435: 439.719
+ 0.081247166: 439.304
+ 0.092879819: 0
+ 0.116099773: 0
+ 0.139319728: 0
 ```
 
 ## Parameters
@@ -65,6 +68,7 @@ One constraint is that they need to be within 4 octaves of each other.
 - [x] add some kind of smoothing
 - [x] look into octave jumps
 - [x] Make hysterisis a parameter
+- [x] Output frequencies with timestamps rather than having them grouped by sample windows
+- [ ] Optionally output frequencies at regular intervals (for MedleyDB comparison)
 - [ ] Make pre-processing code optional via a param
-- [ ] Output frequencies with timestamps rather than having them grouped by sample windows
 

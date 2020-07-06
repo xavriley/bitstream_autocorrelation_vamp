@@ -200,7 +200,7 @@ QlibPitch::getOutputDescriptors() const
     d.binCount = 1;
     d.hasKnownExtents = false;
     d.isQuantized = false;
-    d.sampleType = OutputDescriptor::OneSamplePerStep;
+    d.sampleType = OutputDescriptor::VariableSampleRate;
     d.hasDuration = false;
     list.push_back(d);
 
@@ -230,8 +230,10 @@ QlibPitch::reset()
 QlibPitch::FeatureSet
 QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
 {
-    Feature f;
-    f.hasTimestamp = true;
+    Vamp::RealTime blockStartTimestamp = timestamp;
+    size_t currentFrameWithinBlock = 0;
+    size_t pitchesWithinBlock = 0;
+    FeatureSet fs;
 
     uint32_t sps = static_cast<uint32_t>(m_inputSampleRate);
 
@@ -253,6 +255,7 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
 
     while (i < m_blockSize) {
         float s = inputBuffers[0][i];
+        currentFrameWithinBlock = i;
 
         // Bandpass filter
         s = lp(s);
@@ -277,21 +280,35 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
         // Period Detection
         bool is_ready = m_pd->operator()(s);
 
+        Feature f;
+        f.hasTimestamp = true;
+
         if (is_ready)
         {
             frequency = m_pd->get_frequency();
 
             if (frequency != 0.0f)
             {
+                pitchesWithinBlock += 1;
+                // plan here - get the current sample that we're up to, add i and then convert to a time
+                timestamp = blockStartTimestamp + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
+
+                f.timestamp = timestamp;
                 f.values.push_back(frequency);
+                fs[0].push_back(f);
             }
         }
 
         ++i;
     }
 
-    FeatureSet fs;
-    fs[0].push_back(f);
+    // if no pitches detected within current block output 0
+    if (pitchesWithinBlock == 0) {
+        f.timestamp = timestamp;
+        f.values.push_back(0.0f);
+        fs[0].push_back(f);
+    }
+
     return fs;
 }
 
