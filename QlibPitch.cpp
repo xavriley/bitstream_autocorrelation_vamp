@@ -3,7 +3,6 @@
 namespace q = cycfi::q;
 using namespace q::literals;
 using std::fixed;
-
 QlibPitch::QlibPitch(float inputSampleRate) :
     Plugin(inputSampleRate),
         // m_pd is initialized first so we provide default args here as well
@@ -11,7 +10,10 @@ QlibPitch::QlibPitch(float inputSampleRate) :
         m_blockSize(0),
         m_highestPitch(800.0),
         m_lowestPitch(100.0),
-        m_threshold(-45.0)
+        m_threshold(-45.0),
+        m_frequency(0.0),
+        m_regularOutput(false),
+        m_regularOutputStep(128)
 {
 }
 
@@ -132,6 +134,28 @@ QlibPitch::getParameterDescriptors() const
     threshold.isQuantized = false;
     list.push_back(threshold);
 
+    ParameterDescriptor regularOutput;
+    regularOutput.identifier = "regularOutput";
+    regularOutput.name = "Regular Output";
+    regularOutput.description = "If set to 1, output from the plugin is at regular intervals of n-frames, as defined by the Regular Output Step param. This can help to line up detected pitches with some datasets.";
+    regularOutput.minValue = 0;
+    regularOutput.maxValue = 1;
+    regularOutput.defaultValue = 0;
+    regularOutput.isQuantized = true;
+    regularOutput.quantizeStep = 1;
+    list.push_back(regularOutput);
+
+    ParameterDescriptor regularOutputStep;
+    regularOutputStep.identifier = "regularOutputStep";
+    regularOutputStep.name = "Regular Output";
+    regularOutputStep.description = "Number of frames to use for the interval when Regular Output is enabled. Must not exceed block size.";
+    regularOutputStep.minValue = 0;
+    regularOutputStep.maxValue = 4096;
+    regularOutputStep.defaultValue = 128.0;
+    regularOutputStep.isQuantized = true;
+    regularOutputStep.quantizeStep = 1;
+    list.push_back(regularOutputStep);
+
     return list;
 }
 
@@ -144,6 +168,10 @@ QlibPitch::getParameter(string identifier) const
         return static_cast<float>(m_highestPitch);
     } else if (identifier == "threshold") {
         return static_cast<float>(m_threshold);
+    } else if (identifier == "regularOutput") {
+        return static_cast<float>(m_regularOutput);
+    } else if (identifier == "regularOutputStep") {
+        return static_cast<float>(m_regularOutputStep);
     } else {
         return 0;
     }
@@ -158,6 +186,10 @@ QlibPitch::setParameter(string identifier, float value)
         m_highestPitch = value;
     } else if (identifier == "threshold") {
         m_threshold = value;
+    } else if (identifier == "regularOutput") {
+        m_regularOutput = int(value);
+    } else if (identifier == "regularOutputStep") {
+        m_regularOutputStep = int(value);
     }
 }
 
@@ -249,9 +281,19 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
     q::one_pole_lowpass        lp{ m_highestPitch, sps };
     q::one_pole_lowpass        lp2{ m_lowestPitch, sps };
 
-    float frequency = 0.0f;
-
     size_t i = 0; // note: same type as m_blockSize
+
+    // Detection requires a buffer equal to two cycles of the lowest frequency
+    // This introduces a slight lag - this lag aligns the realigns the detected pitch
+    // with the point in the waveform where it was detected
+    int minPeriod = (int)double(cycfi::q::frequency(m_lowestPitch).period() * sps);
+
+    int num = minPeriod;
+    int factor = m_regularOutputStep;
+
+    // round to nearest boundary for m_regularOutputStep
+    auto detectionOffset = (num + factor - 1 - (num - 1) % factor);
+    detectionOffset = detectionOffset + m_regularOutputStep; // alignment is better when adjusted by 1 more step
 
     while (i < m_blockSize) {
         float s = inputBuffers[0][i];
@@ -283,18 +325,36 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
         Feature f;
         f.hasTimestamp = true;
 
-        if (is_ready)
-        {
-            frequency = m_pd->get_frequency();
+        if (is_ready) {
+            m_frequency = m_pd->get_frequency();
 
-            if (frequency != 0.0f)
-            {
+            if (m_frequency != 0.0f) {
                 pitchesWithinBlock += 1;
-                // plan here - get the current sample that we're up to, add i and then convert to a time
-                timestamp = blockStartTimestamp + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
+                if (!m_regularOutput) {
+                    // output pitches as they arrive if regularOutput is off
+                    timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(minPeriod, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
 
+                    // guard against negative times from offset
+                    if (timestamp.nsec >= 0) {
+                        f.timestamp = timestamp;
+                        f.values.push_back(m_frequency);
+                        fs[0].push_back(f);
+                    }
+                }
+            }
+        }
+
+        // if regularOutput is true, output values every n samples (e.g. 128)
+        // - this helps to align with output of some generated datasets
+        // else output frequencies with the timestamps where they occur
+        if (m_regularOutput && (currentFrameWithinBlock % m_regularOutputStep) == 0) {
+            // get the current sampleBlock start that we're up to, add currentFrameWithinBlock and then convert to a time
+            timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(detectionOffset, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
+
+            // guard against negative times from offset
+            if (timestamp.nsec >= 0) {
                 f.timestamp = timestamp;
-                f.values.push_back(frequency);
+                f.values.push_back(m_frequency);
                 fs[0].push_back(f);
             }
         }
@@ -304,9 +364,7 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
 
     // if no pitches detected within current block output 0
     if (pitchesWithinBlock == 0) {
-        f.timestamp = timestamp;
-        f.values.push_back(0.0f);
-        fs[0].push_back(f);
+        m_frequency = 0.0;
     }
 
     return fs;

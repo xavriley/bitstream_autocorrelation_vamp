@@ -36,17 +36,13 @@ Running plugin: "qlib_pitch"...
 Using block size = 1024, step size = 1024
 Plugin accepts 1 -> 1 channel(s)
 Sound file has 1 (will mix/augment if necessary)
-Output is: "output"
- 0.000000000: 0
- 0.030589570: 440.063
- 0.040612245: 439.953
- 0.051043084: 439.953
- 0.060929705: 439.939
- 0.071088435: 439.719
- 0.081247166: 439.304
- 0.092879819: 0
- 0.116099773: 0
- 0.139319728: 0
+Output is: "frequency"
+ 0.020589570: 440.063
+ 0.030612245: 439.953
+ 0.041043084: 439.953
+ 0.050929705: 439.939
+ 0.061088435: 439.719
+ 0.071247166: 439.304
 ```
 
 ## Parameters
@@ -57,6 +53,9 @@ One constraint is that they need to be within 4 octaves of each other.
 
 * `lowestPitch`: Lowest pitch to be tracked. Defaults to 100Hz
 * `highestPitch`: Highest pitch to be tracked. Defaults to 800Hz
+* `threshold`: Decibel level at which to give up detecting pitches. Defaults to -45dB
+* `regularOutput`: Whether to output frequencies at regular intervals, or as and when they are detected. When enabled this can help to line up with output of similarly generated datasets. Off by default.
+* `regularOutputStep`: Number of samples to use as a step size with regularOutput - defaults to 128
 
 ## Todo
 
@@ -69,6 +68,6 @@ One constraint is that they need to be within 4 octaves of each other.
 - [x] look into octave jumps
 - [x] Make hysterisis a parameter
 - [x] Output frequencies with timestamps rather than having them grouped by sample windows
-- [ ] Optionally output frequencies at regular intervals (for MedleyDB comparison)
+- [x] Optionally output frequencies at regular intervals (for MedleyDB comparison) - fix to work with offset
 - [ ] Make pre-processing code optional via a param
 

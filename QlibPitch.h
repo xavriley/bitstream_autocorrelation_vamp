@@ -54,9 +54,12 @@ public:
 protected:
     // plugin-specific data and methods go here
     size_t m_blockSize;
-    float m_highestPitch;
-    float m_lowestPitch;
-    float m_threshold;
+    float  m_highestPitch;
+    float  m_lowestPitch;
+    float  m_threshold;
+    float  m_frequency;
+    bool   m_regularOutput;
+    size_t m_regularOutputStep;
 };
 
 
