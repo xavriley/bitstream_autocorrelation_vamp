@@ -326,23 +326,39 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
         f.hasTimestamp = true;
 
         if (is_ready) {
+            auto last_frequency = m_frequency;
             m_frequency = m_pd->get_frequency();
 
             if (m_frequency != 0.0f) {
                 pitchesWithinBlock += 1;
-                if (!m_regularOutput) {
-                    // output pitches as they arrive if regularOutput is off
-                    timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(minPeriod, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
-
-                    // guard against negative times from offset
-                    if (timestamp.nsec >= 0) {
-                        f.timestamp = timestamp;
-                        f.values.push_back(m_frequency);
-                        fs[0].push_back(f);
-                    }
-                }
             }
-        }
+
+	    if (!m_regularOutput) {
+		    // output pitches as they arrive if regularOutput is off
+		    timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(minPeriod, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
+
+		    // guard against negative times from offset
+		    if (timestamp.nsec >= 0 && m_frequency != 0.0f) {
+			    f.timestamp = timestamp;
+			    f.values.push_back(m_frequency);
+			    fs[0].push_back(f);
+		    }
+	    }
+        } else {
+            auto last_frequency = m_frequency;
+	    if(last_frequency == 0.0f) {
+                m_frequency = -1.0f;
+                timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(minPeriod, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
+
+                // guard against negative times from offset
+                if (timestamp.nsec >= 0 ) {
+			f.timestamp = timestamp;
+			f.values.push_back(0.0f);
+			fs[0].push_back(f);
+                }
+	        m_frequency = -1.0f;
+	    }
+	}
 
         // if regularOutput is true, output values every n samples (e.g. 128)
         // - this helps to align with output of some generated datasets
