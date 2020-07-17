@@ -104,7 +104,7 @@ QlibPitch::getParameterDescriptors() const
     ParameterDescriptor lowestPitch;
     lowestPitch.identifier = "lowestPitch";
     lowestPitch.name = "Lowest Pitch";
-    lowestPitch.description = "Lower limit for pitch tracking output. Must be within 4 octaves of highest pitch. Defaults to 100Hz";
+    lowestPitch.description = "Lower limit for pitch tracking output. Defaults to 100Hz";
     lowestPitch.unit = "Hz";
     lowestPitch.minValue = 20;
     lowestPitch.maxValue = 2000;
@@ -115,10 +115,10 @@ QlibPitch::getParameterDescriptors() const
     ParameterDescriptor highestPitch;
     highestPitch.identifier = "highestPitch";
     highestPitch.name = "Highest Pitch";
-    highestPitch.description = "Upper limit for pitch tracking output. Must be within 4 octaves of lowest pitch. Defaults to 800Hz";
+    highestPitch.description = "Upper limit for pitch tracking output. Defaults to 800Hz";
     highestPitch.unit = "Hz";
     highestPitch.minValue = 20;
-    highestPitch.maxValue = 2000;
+    highestPitch.maxValue = 5000;
     highestPitch.defaultValue = 800.0;
     highestPitch.isQuantized = false;
     list.push_back(highestPitch);
