@@ -267,6 +267,17 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
     size_t pitchesWithinBlock = 0;
     FeatureSet fs;
 
+    // TODO: this needs to be investigated
+    // when testing against the MedleyDB dataset,
+    // it was observed that all predictions were "out"
+    // by a number of frames. Some of this is due to the requirement
+    // around 2 * lowest_frequency.period() but I needed to
+    // add this additional offset to align things further.
+    //
+    // Once I have figured out the source of this, hopefully it
+    // can be removed.
+    int magicOffset = 780;
+
     uint32_t sps = static_cast<uint32_t>(m_inputSampleRate);
 
     constexpr float            slope = 1.0f/4;
@@ -294,7 +305,6 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
     // round to nearest boundary for m_regularOutputStep
     auto detectionOffset = (num + factor - 1 - (num - 1) % factor);
     detectionOffset = detectionOffset + m_regularOutputStep; // alignment is better when adjusted by 1 more step
-
     while (i < m_blockSize) {
         float s = inputBuffers[0][i];
         currentFrameWithinBlock = i;
@@ -335,7 +345,7 @@ QlibPitch::process(const float *const *inputBuffers, Vamp::RealTime timestamp)
 
 	    if (!m_regularOutput) {
 		    // output pitches as they arrive if regularOutput is off
-		    timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(minPeriod, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
+		    timestamp = blockStartTimestamp - Vamp::RealTime::frame2RealTime(minPeriod + magicOffset, lrint(m_inputSampleRate)) + Vamp::RealTime::frame2RealTime(currentFrameWithinBlock, lrintf(m_inputSampleRate));
 
 		    // guard against negative times from offset
 		    if (timestamp.nsec >= 0 && m_frequency != 0.0f) {
